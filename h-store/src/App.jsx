@@ -1,30 +1,17 @@
-import CompanyLogos from "./components/common/CompanyLogos";
-import FeaturedProducts from "./components/common/FeaturedProducts";
-import FlexSlider from "./components/common/FlexSlider";
-import FloatingActions from "./components/common/FloatingActions";
-import Footer from "./components/navigation/Footer";
-import { FootprintsIcon } from "lucide-react";
-import InfoSection from "./components/common/InfoSection";
-import LatestProducts from "./components/common/LatestsProducts";
-import Navbar from "./components/navigation/Navbar";
-import React from "react";
-import ThreeColumnSection from "./components/common/ThreeColumnSection";
-import TopBar from "./components/navigation/Topbar";
+import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
+
+import Home from "./pages/Home";
+import Products from "./pages/Products";
 
 const App = () => {
   return (
-    <div>
-      <TopBar />
-      <Navbar />
-      <FlexSlider id="flexslider" />
-      <FloatingActions />
-      <FeaturedProducts />
-      <LatestProducts />
-      <InfoSection />
-      <ThreeColumnSection />
-      <CompanyLogos />
-      <Footer />
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/products" element={<Products />} />
+        {/* Add more pages here like About, Contact */}
+      </Routes>
+    </Router>
   );
 };
 

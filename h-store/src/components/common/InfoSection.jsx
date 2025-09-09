@@ -43,7 +43,7 @@ const InfoSection = () => {
         ))}
       </div>
       {/* Horizontal Divider */}
-      <div className="border-t border-gray-300 mt-6"></div>
+      <div className="border-t border-gray-300 mt-12"></div>
     </div>
   );
 };
