@@ -8,8 +8,7 @@ const App = () => {
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/products" element={<Products />} />
-        {/* Add more pages here like About, Contact */}
+        <Route path="/products/:subcategory?" element={<Products />} />
       </Routes>
     </Router>
   );
