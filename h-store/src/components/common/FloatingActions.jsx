@@ -28,7 +28,7 @@ const FloatingActions = ({ phoneNumber = "254700000000", message = "Hello!" }) =
         href={whatsappLink}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center border border-gray-300 rounded-full shadow-lg px-3 py-2 bg-white hover:bg-[#25D366] hover:text-white transition-colors duration-300"
+        className="flex items-center border border-gray-300 rounded-full shadow-lg px-3 py-2 text-white bg-[#25D366] hover:bg-[#25D366] hover:text-black transition-colors duration-300"
         title="Chat with us on WhatsApp"
       >
         <FaWhatsapp className="w-6 h-6 mr-2 transition-colors duration-300" />
