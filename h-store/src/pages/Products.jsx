@@ -63,7 +63,7 @@ const Products = () => {
         subcategories={subcategories}
         onSelect={handleSelectSubcategory}
       />
-      <ProductsGrid products={products} />
+      <ProductsGrid products={products} selectedCategory={subcategory || "all"} />
       <Footer />
       <FloatingActions />
     </div>
