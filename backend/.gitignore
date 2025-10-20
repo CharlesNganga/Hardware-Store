@@ -1,0 +1,90 @@
+# ============================
+# PYTHON BASICS
+# ============================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.env/
+.env.bak/
+venv.bak/
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ============================
+# DJANGO SPECIFIC
+# ============================
+# SQLite database
+db.sqlite3
+db.sqlite3-journal
+
+# Django migrations (optional to ignore compiled migration cache)
+*/migrations/__pycache__/
+
+# Local Django settings override
+local_settings.py
+
+# ============================
+# MEDIA & STATIC FILES
+# ============================
+# User-uploaded media files
+/media/
+# Collected static files
+/staticfiles/
+# If you have frontend build output (optional)
+frontend_build/
+frontend_dist/
+
+# ============================
+# LOGS & RUNTIME FILES
+# ============================
+*.log
+logs/
+celerybeat-schedule
+celerybeat.pid
+
+# ============================
+# IDE / EDITOR FILES
+# ============================
+# VSCode
+.vscode/
+# PyCharm
+.idea/
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ============================
+# OS / SYSTEM FILES
+# ============================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ============================
+# REPOMIX / EXPORT FILES
+# ============================
+# AI or codebase analysis outputs
+repomix_merged_*.txt
+*.repomix
