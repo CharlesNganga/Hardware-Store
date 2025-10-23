@@ -41,6 +41,11 @@ The content is organized as follows:
 
 <directory_structure>
 src/
+  api/
+    api.js
+    services.js
+  assets/
+    Logo.png
   components/
     common/
       CompanyLogos.jsx
@@ -71,17 +76,161 @@ eslint.config.js
 index.html
 package.json
 README.md
+text.html
 vite.config.js
 </directory_structure>
 
 <files>
 This section contains the contents of the repository's files.
 
+<file path="src/api/api.js">
+// src/api.js
+import axios from "axios";
+
+// 1. Keep this export from your previous version.
+// You NEED this for image paths.
+export const backendUrl = "http://localhost:8000";
+
+// 2. Define the API base URL
+const BASE_URL = `${backendUrl}/api/`;
+
+// 3. Create your new, robust axios instance
+const api = axios.create({
+  baseURL: BASE_URL,
+  timeout: 10000, // 10 seconds
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+// 4. Keep your new interceptors (they are perfect)
+api.interceptors.request.use(
+  (config) => {
+    // You can add auth tokens here later
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      console.error("API Error:", error.response.data);
+    } else if (error.request) {
+      console.error("Network Error:", error.request);
+    } else {
+      console.error("Error:", error.message);
+    }
+    return Promise.reject(error);
+  }
+);
+
+// 5. Export the api instance
+export default api;
+</file>
+
+<file path="src/api/services.js">
+import api from './api';
+
+// ========================================
+// Categories
+// ========================================
+export const getCategories = async () => {
+  const response = await api.get('/categories/');
+  return response.data;
+};
+
+// ========================================
+// Products
+// ========================================
+export const getAllProducts = async (params = {}) => {
+  const response = await api.get('/products/', { params });
+  return response.data;
+};
+
+export const getProductsByCategory = async (categorySlug) => {
+  const response = await api.get('/products/', {
+    params: { category: categorySlug }
+  });
+  return response.data;
+};
+
+export const getProductDetail = async (productId) => {
+  const response = await api.get(`/products/${productId}/`);
+  return response.data;
+};
+
+export const getFeaturedProducts = async () => {
+  const response = await api.get('/products/featured/');
+  return response.data;
+};
+
+export const getLatestProducts = async () => {
+  const response = await api.get('/products/latest/');
+  return response.data;
+};
+
+export const getBestSellerProducts = async () => {
+  const response = await api.get('/products/bestsellers/');
+  return response.data;
+};
+
+export const searchProducts = async (searchTerm) => {
+  const response = await api.get('/products/', {
+    params: { search: searchTerm }
+  });
+  return response.data;
+};
+
+// ========================================
+// Homepage Content
+// ========================================
+export const getSlides = async () => {
+  const response = await api.get('/slides/');
+  return response.data;
+};
+
+export const getCompanyInfo = async () => {
+  const response = await api.get('/company-info/');
+  return response.data;
+};
+
+export const getCompanyLogos = async () => {
+  const response = await api.get('/company-logos/');
+  return response.data;
+};
+</file>
+
 <file path="src/components/common/CompanyLogos.jsx">
-import React from "react";
+import React, { useEffect, useState } from "react";
+
+import { getCompanyLogos } from "../../api/services";
 
 const CompanyLogos = () => {
-  const logos = Array.from({ length: 6 }, (_, i) => i + 1); // placeholder logos
+  const [logos, setLogos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchLogos = async () => {
+      try {
+        setLoading(true);
+        const data = await getCompanyLogos();
+        setLogos(Array.isArray(data) ? data : data.results || []);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching company logos:", err);
+        setError("Failed to load company logos");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLogos();
+  }, []);
 
   return (
     <div className="w-full my-32">
@@ -90,16 +239,43 @@ const CompanyLogos = () => {
 
       {/* Logos Container */}
       <div className="overflow-hidden relative flex items-center">
-        <div className="flex animate-scroll gap-8">
-          {logos.concat(logos).map((logo, index) => (
-            <div
-              key={index}
-              className="flex-shrink-0 w-40 h-20 bg-black flex items-center justify-center"
-            >
-              <span className="text-white font-bold">{logo}</span>
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex gap-8 w-full justify-center">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div
+                key={i}
+                className="flex-shrink-0 w-40 h-20 bg-gray-200 animate-pulse rounded"
+              ></div>
+            ))}
+          </div>
+        ) : error ? (
+          <div className="text-center w-full text-red-500 py-6">{error}</div>
+        ) : logos.length === 0 ? (
+          <div className="text-center w-full text-gray-500 py-6">
+            No company logos available.
+          </div>
+        ) : (
+          <div className="flex animate-scroll gap-8">
+            {logos.concat(logos).map((logo, index) => (
+              <div
+                key={index}
+                className="flex-shrink-0 w-40 h-20 bg-white shadow flex items-center justify-center rounded"
+              >
+                {logo.logo ? (
+                  <img
+                    src={logo.logo}
+                    alt={logo.name || `Logo ${index + 1}`}
+                    className="max-h-full max-w-full object-contain"
+                  />
+                ) : (
+                  <span className="text-gray-500 text-sm font-semibold">
+                    {logo.name || "No Logo"}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Bottom Divider */}
@@ -129,48 +305,102 @@ export default CompanyLogos;
 </file>
 
 <file path="src/components/common/FeaturedProducts.jsx">
-import React from "react";
+import React, { useEffect, useState } from "react";
+
+import { getFeaturedProducts } from "../../api/services";
 
 const FeaturedProducts = () => {
-  const products = [
-    {
-      id: 1,
-      title: "Cement",
-      offer: "Up to 20% Off",
-      image: "", // No image yet
-      link: "/categories/cement",
-    },
-    {
-      id: 2,
-      title: "PPR Pipes & Fittings",
-      offer: "Up to 15% Off",
-      image: "",
-      link: "/categories/plumbing-piping",
-    },
-    {
-      id: 3,
-      title: "Mabati Roofing Sheets",
-      offer: "Up to 10% Off",
-      image: "",
-      link: "/categories/steel",
-    },
-  ];
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  // Fetch featured products from API
+  useEffect(() => {
+    const fetchFeaturedProducts = async () => {
+      try {
+        setLoading(true);
+        const data = await getFeaturedProducts();
+
+        // Handle both array and paginated response
+        let productsArray = [];
+        if (Array.isArray(data)) {
+          productsArray = data;
+        } else if (data && data.results && Array.isArray(data.results)) {
+          productsArray = data.results;
+        }
+
+        // Take only first 3 featured products
+        setProducts(productsArray.slice(0, 3));
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching featured products:", err);
+        setError("Failed to load featured products");
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeaturedProducts();
+  }, []);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="bg-gray-200 animate-pulse aspect-[4/5] rounded-lg"
+            ></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-10">
+        <div className="text-center py-12">
+          <p className="text-red-500">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // No products - show message instead of hiding
+  if (products.length === 0) {
+    return (
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-10">
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <p className="text-gray-500">
+            No featured products available. Please mark some products as
+            featured in the admin panel.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Display featured products
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-10">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {products.map((product) => (
           <a
             key={product.id}
-            href={product.link}
+            href={`/products/${product.category_slug || ""}`}
             className="relative group overflow-hidden shadow-lg transform transition duration-300 hover:scale-105"
           >
-            {/* Background placeholder with black */}
+            {/* Product Image */}
             <div className="w-[85%] mx-auto aspect-[4/5] bg-black">
-              {product.image ? (
+              {product.thumbnail ? (
                 <img
-                  src={product.image}
-                  alt={product.title}
+                  src={product.thumbnail}
+                  alt={product.name}
                   className="w-full h-full object-cover group-hover:opacity-90 transition duration-300"
                 />
               ) : (
@@ -183,11 +413,14 @@ const FeaturedProducts = () => {
             {/* Overlay text */}
             <div className="absolute inset-0 flex flex-col items-center px-4 pt-4">
               <p className="text-xs sm:text-sm font-semibold uppercase text-white bg-[#1228e1] px-2 py-1 mb-2">
-                {product.offer}
+                Featured Product
               </p>
               <h3 className="text-lg md:text-xl font-bold text-white drop-shadow-lg">
-                {product.title}
+                {product.name}
               </h3>
+              <p className="text-sm text-white drop-shadow-lg mt-2">
+                {product.company}
+              </p>
             </div>
           </a>
         ))}
@@ -203,46 +436,48 @@ export default FeaturedProducts;
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 
+import { getSlides } from '../../api/services';
+
 const FlexSlider = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-
-  const slides = [
-    {
-      id: 1,
-      image:
-        'https://images.unsplash.com/photo-1584622781564-1d987709cea4?w=1200&h=600&fit=crop',
-      alt: 'Premium Kitchen Tap',
-      title: 'Premium Quality Stainless',
-      subtitle: 'Kitchen Premium Quality tap',
-      titleSpan: 'Long Body Tap',
-      buttonText: 'Shop Now',
-      link: '#',
-    },
-    {
-      id: 2,
-      image:
-        'https://images.unsplash.com/photo-1620626011761-996317b8d101?w=1200&h=600&fit=crop',
-      alt: 'Luxury Bathtub',
-      title: 'Plantex Acrylic Bathtub',
-      subtitle: 'Luxury Cast Iron bathtub',
-      titleSpan: 'For Bathroom',
-      buttonText: 'Shop Now',
-      link: '#',
-    },
-  ];
+  const [slides, setSlides] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const interval = 8000;
 
+  // Fetch slides from API
+  useEffect(() => {
+    const fetchSlides = async () => {
+      try {
+        setLoading(true);
+        const data = await getSlides();
+        // Handle both paginated (data.results) and non-paginated (data) responses
+        const slidesData = Array.isArray(data) ? data : (data.results || []);
+        setSlides(slidesData);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching slides:', err);
+        setError('Failed to load slides');
+        setSlides([]); // Set empty array on error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSlides();
+  }, []);
+
   const nextSlide = useCallback(() => {
-    if (isAnimating) return;
+    if (isAnimating || slides.length === 0) return;
     setIsAnimating(true);
     setCurrentSlide((prev) => (prev + 1) % slides.length);
     setTimeout(() => setIsAnimating(false), 750);
   }, [isAnimating, slides.length]);
 
   const prevSlide = useCallback(() => {
-    if (isAnimating) return;
+    if (isAnimating || slides.length === 0) return;
     setIsAnimating(true);
     setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
     setTimeout(() => setIsAnimating(false), 750);
@@ -255,14 +490,15 @@ const FlexSlider = () => {
     setTimeout(() => setIsAnimating(false), 750);
   };
 
-  // Auto-play always ON
+  // Auto-play
   useEffect(() => {
+    if (slides.length === 0) return;
     const autoPlay = setInterval(() => {
       nextSlide();
     }, interval);
 
     return () => clearInterval(autoPlay);
-  }, [nextSlide]);
+  }, [nextSlide, slides.length]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -273,6 +509,33 @@ const FlexSlider = () => {
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [nextSlide, prevSlide]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 sm:mt-8 lg:mt-10">
+        <div className="relative w-full h-64 sm:h-80 md:h-96 lg:h-[450px] bg-gray-200 rounded-lg animate-pulse flex items-center justify-center">
+          <p className="text-gray-500">Loading slides...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 sm:mt-8 lg:mt-10">
+        <div className="relative w-full h-64 sm:h-80 md:h-96 lg:h-[450px] bg-red-50 rounded-lg flex items-center justify-center">
+          <p className="text-red-500">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // No slides
+  if (slides.length === 0) {
+    return null;
+  }
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 sm:mt-8 lg:mt-10">
@@ -288,10 +551,9 @@ const FlexSlider = () => {
             >
               <img
                 src={slide.image}
-                alt={slide.alt}
+                alt={slide.title}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-black bg-opacity-50"></div>
 
               {/* Content */}
               <div className="absolute inset-0 flex items-center justify-center text-center text-white px-4 sm:px-6 lg:px-8">
@@ -317,7 +579,9 @@ const FlexSlider = () => {
                   >
                     <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold uppercase leading-tight mb-4 md:mb-6 lg:mb-8">
                       {slide.title}
-                      <span className="block text-white">{slide.titleSpan}</span>
+                      {slide.title_span && (
+                        <span className="block text-white">{slide.title_span}</span>
+                      )}
                     </h1>
                   </div>
 
@@ -332,7 +596,7 @@ const FlexSlider = () => {
                       href={slide.link}
                       className="inline-block bg-[#1228e1] text-white hover:bg-white hover:text-[#1228e1] px-6 md:px-8 py-3 md:py-4 font-semibold uppercase tracking-wide transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl rounded-sm"
                     >
-                      {slide.buttonText}
+                      {slide.button_text}
                     </a>
                   </div>
                 </div>
@@ -504,72 +768,55 @@ export default InfoSection;
 </file>
 
 <file path="src/components/common/LatestsProducts.jsx">
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import {
+  getBestSellerProducts,
+  getFeaturedProducts,
+  getLatestProducts,
+} from "../../api/services";
 
 import ProductCard from "../common/ProductCard";
 
 const LatestProducts = () => {
   const [activeTab, setActiveTab] = useState("New Arrivals");
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Sample products (8 items)
-  const products = [
-    {
-      id: 1,
-      company: "Bamburi",
-      name: "Cement 50kg",
-      price: "780",
-      image: "https://via.placeholder.com/300x400",
-    },
-    {
-      id: 2,
-      company: "Kentank",
-      name: "PPR Pipe 1 inch",
-      price: "1200",
-      image: "https://via.placeholder.com/300x400",
-    },
-    {
-      id: 3,
-      company: "Royal Mabati",
-      name: "Mabati Sheet 3m",
-      price: "2500",
-      image: "https://via.placeholder.com/300x400",
-    },
-    {
-      id: 4,
-      company: "Philips",
-      name: "LED Bulb 12W",
-      price: "350",
-      image: "https://via.placeholder.com/300x400",
-    },
-    {
-      id: 5,
-      company: "Crown Paints",
-      name: "Wall Paint 4L",
-      price: "1900",
-      image: "https://via.placeholder.com/300x400",
-    },
-    {
-      id: 6,
-      company: "Kentank",
-      name: "HDPE Fitting",
-      price: "1500",
-      image: "https://via.placeholder.com/300x400",
-    },
-    {
-      id: 7,
-      company: "Davis & Shirtliff",
-      name: "Water Pump",
-      price: "13500",
-      image: "https://via.placeholder.com/300x400",
-    },
-    {
-      id: 8,
-      company: "Kenchic",
-      name: "Shower Instant",
-      price: "4200",
-      image: "https://via.placeholder.com/300x400",
-    },
-  ];
+  // Fetch products based on active tab
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        let data = [];
+        if (activeTab === "New Arrivals") {
+          data = await getLatestProducts();
+        } else if (activeTab === "Featured") {
+          data = await getFeaturedProducts();
+        } else if (activeTab === "Best Sellers") {
+          data = await getBestSellerProducts();
+        }
+
+        // Handle both array and paginated responses
+        const list = Array.isArray(data)
+          ? data
+          : data?.results && Array.isArray(data.results)
+          ? data.results
+          : [];
+
+        setProducts(list);
+      } catch (err) {
+        console.error("Error loading products:", err);
+        setError("Failed to load products. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, [activeTab]);
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-12">
@@ -595,18 +842,44 @@ const LatestProducts = () => {
         ))}
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="bg-gray-200 animate-pulse aspect-[4/5] rounded-lg"
+            ></div>
+          ))}
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="text-center text-red-500 py-8">{error}</div>
+      )}
+
+      {/* No Products */}
+      {!loading && !error && products.length === 0 && (
+        <div className="text-center text-gray-500 py-8">
+          No products found for this category.
+        </div>
+      )}
+
       {/* Product Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-        {products.map((product) => (
-          <ProductCard
-            key={product.id}
-            image={product.image}
-            company={product.company}
-            name={product.name}
-            price={product.price}
-          />
-        ))}
-      </div>
+      {!loading && !error && products.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+          {products.map((product) => (
+            <ProductCard
+              key={product.id}
+              image={product.thumbnail || "https://via.placeholder.com/300x400"}
+              company={product.company}
+              name={product.name}
+              price={product.price}
+            />
+          ))}
+        </div>
+      )}
 
       {/* All Products Button */}
       <div className="text-center">
@@ -630,30 +903,28 @@ import React, { useState } from "react";
 
 import ProductModal from "./ProductModal";
 
-const ProductCard = ({ company, name, price }) => {
+const ProductCard = ({ id, company, name, price, image, product }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const product = {
-    name: "Gold Bell Cross 2cm Brass Wall Mount Basin",
-    brand: "Transfixart",
-    condition: "New",
-    price: 2500,
-    discountedPrice: 2250,
-    thumbnail: "https://via.placeholder.com/400x300",
-    images: [
-      "https://via.placeholder.com/400x300",
-      "https://via.placeholder.com/400x300?text=Alt1",
-      "https://via.placeholder.com/400x300?text=Alt2",
-    ],
-  };
+  // Fallbacks if props are missing
+  const displayImage = image || "https://via.placeholder.com/400x300";
+  const displayName = name || "Unnamed Product";
+  const displayCompany = company || "Unknown Brand";
+  const displayPrice = price || "N/A";
 
   return (
     <>
       <div className="relative group bg-white shadow hover:shadow-lg transition duration-300 p-3">
-        {/* Product Image Placeholder */}
+        {/* Product Image */}
         <div className="relative w-full aspect-[4/5] bg-black overflow-hidden">
+          <img
+            src={displayImage}
+            alt={displayName}
+            className="w-full h-full object-cover group-hover:opacity-90 transition duration-300"
+          />
+
           {/* Hover Icons */}
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition duration-300 space-x-3">
+          <div className="absolute inset-0 flex items-center justify-center  bg-opacity-40 opacity-0 group-hover:opacity-100 transition duration-300 space-x-3">
             <button className="bg-white p-2 rounded-full shadow hover:bg-[#1228e1] hover:text-white transition">
               <Heart className="w-5 h-5" />
             </button>
@@ -671,9 +942,13 @@ const ProductCard = ({ company, name, price }) => {
 
         {/* Product Info */}
         <div className="mt-3 text-center">
-          <p className="text-sm text-gray-500">{company}</p>
-          <h3 className="text-base font-semibold text-gray-900">{name}</h3>
-          <p className="text-[#1228e1] font-bold">Ksh. {price}</p>
+          <p className="text-sm text-gray-500">{displayCompany}</p>
+          <h3 className="text-base font-semibold text-gray-900">
+            {displayName}
+          </h3>
+          <p className="text-[#1228e1] font-bold">
+            {displayPrice !== "N/A" ? `Ksh. ${displayPrice}` : "Price not set"}
+          </p>
         </div>
       </div>
 
@@ -681,7 +956,7 @@ const ProductCard = ({ company, name, price }) => {
       <ProductModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        product={product}
+        product={product || { id, name: displayName, company: displayCompany, price: displayPrice, thumbnail: displayImage }}
       />
     </>
   );
@@ -1504,6 +1779,7 @@ export default defineConfig([
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.12",
+    "axios": "^1.12.2",
     "framer-motion": "^12.23.12",
     "lucide-react": "^0.543.0",
     "react": "^19.1.1",

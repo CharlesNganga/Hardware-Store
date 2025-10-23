@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { getAllProducts, getCategories, getProductsByCategory } from "../api/services";
 import { useNavigate, useParams } from "react-router-dom";
 
 import FloatingActions from "../components/common/FloatingActions";
@@ -14,42 +15,70 @@ const Products = () => {
   const navigate = useNavigate();
 
   const [selectedSubcategory, setSelectedSubcategory] = useState(subcategory || null);
+  const [subcategories, setSubcategories] = useState([]);
   const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const subcategories = [
-    { id: 1, name: "Plumbing & Piping", slug: "plumbing-piping" },
-    { id: 2, name: "Electrical", slug: "electrical" },
-    { id: 3, name: "Carpentry", slug: "carpentry" },
-    { id: 4, name: "Steel", slug: "steel" },
-    { id: 5, name: "Glues", slug: "glues" },
-    { id: 6, name: "Paints", slug: "paints" },
-    { id: 7, name: "Gas", slug: "gas" },
-    { id: 8, name: "Curtains", slug: "curtains" },
-    { id: 9, name: "Cement", slug: "cement" },
-    { id: 10, name: "Home Equipment", slug: "home-equipment" },
-  ];
-
-  // Update state when URL changes
+  // Fetch categories on mount
   useEffect(() => {
-    setSelectedSubcategory(subcategory || null);
+    const fetchCategories = async () => {
+      try {
+        setLoading(true);
+        const data = await getCategories();
+        // Handle both array and paginated response
+        const categoriesArray = Array.isArray(data) 
+          ? data 
+          : (data.results && Array.isArray(data.results)) 
+          ? data.results 
+          : [];
+        setSubcategories(categoriesArray);
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+        setError('Failed to load categories');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    // const allProducts = [
-    //   { id: 1, name: "Pipe 1", company: "A Co", price: 500, category: "plumbing-piping" },
-    //   { id: 2, name: "Wire 1", company: "B Co", price: 300, category: "electrical" },
-    //   { id: 3, name: "Hammer", company: "C Co", price: 800, category: "carpentry" },
-    //   { id: 4, name: "Steel Sheet", company: "D Co", price: 1200, category: "steel" },
-    // ];
-    const allProducts=[{id:1,name:"Pipe 1",company:"A Co",price:500,category:"plumbing-piping"},{id:2,name:"Wire 1",company:"B Co",price:300,category:"electrical"},{id:3,name:"Hammer",company:"C Co",price:800,category:"carpentry"},{id:4,name:"Steel Sheet",company:"D Co",price:1200,category:"steel"},{id:5,name:"Glue 1",company:"E Co",price:150,category:"glues"},{id:6,name:"Paint Brush",company:"F Co",price:250,category:"paints"},{id:7,name:"Gas Cylinder",company:"G Co",price:3500,category:"gas"},{id:8,name:"Curtain Set",company:"H Co",price:1200,category:"curtains"},{id:9,name:"Cement Bag",company:"I Co",price:700,category:"cement"},{id:10,name:"Drill Machine",company:"J Co",price:1500,category:"home-equipment"},{id:11,name:"Pipe 2",company:"A Co",price:550,category:"plumbing-piping"},{id:12,name:"Wire 2",company:"B Co",price:320,category:"electrical"},{id:13,name:"Hammer 2",company:"C Co",price:850,category:"carpentry"},{id:14,name:"Steel Rod",company:"D Co",price:1300,category:"steel"},{id:15,name:"Glue 2",company:"E Co",price:180,category:"glues"},{id:16,name:"Paint Roller",company:"F Co",price:300,category:"paints"},{id:17,name:"Gas Stove",company:"G Co",price:4500,category:"gas"},{id:18,name:"Curtain Rod",company:"H Co",price:400,category:"curtains"},{id:19,name:"Cement Sack",company:"I Co",price:750,category:"cement"},{id:20,name:"Blender",company:"J Co",price:2000,category:"home-equipment"},{id:21,name:"Pipe 3",company:"A Co",price:600,category:"plumbing-piping"},{id:22,name:"Wire 3",company:"B Co",price:350,category:"electrical"},{id:23,name:"Saw",company:"C Co",price:900,category:"carpentry"},{id:24,name:"Steel Beam",company:"D Co",price:1400,category:"steel"},{id:25,name:"Glue 3",company:"E Co",price:200,category:"glues"},{id:26,name:"Paint Can",company:"F Co",price:400,category:"paints"},{id:27,name:"Gas Regulator",company:"G Co",price:1500,category:"gas"},{id:28,name:"Curtain Fabric",company:"H Co",price:900,category:"curtains"},{id:29,name:"Cement Mix",company:"I Co",price:800,category:"cement"},{id:30,name:"Toaster",company:"J Co",price:1200,category:"home-equipment"},{id:31,name:"Pipe 4",company:"A Co",price:650,category:"plumbing-piping"},{id:32,name:"Wire 4",company:"B Co",price:370,category:"electrical"},{id:33,name:"Chisel",company:"C Co",price:950,category:"carpentry"},{id:34,name:"Steel Panel",company:"D Co",price:1500,category:"steel"},{id:35,name:"Glue 4",company:"E Co",price:220,category:"glues"},{id:36,name:"Paint Tray",company:"F Co",price:350,category:"paints"},{id:37,name:"Gas Pipe",company:"G Co",price:1200,category:"gas"},{id:38,name:"Curtain Hook",company:"H Co",price:150,category:"curtains"},{id:39,name:"Cement Mixer",company:"I Co",price:3000,category:"cement"},{id:40,name:"Microwave",company:"J Co",price:4000,category:"home-equipment"}];
+    fetchCategories();
+  }, []);
 
+  // Fetch products when subcategory changes
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setProductsLoading(true);
+        setSelectedSubcategory(subcategory || null);
 
-    if (subcategory) {
-      setProducts(allProducts.filter(p => p.category === subcategory));
-    } else {
-      setProducts(allProducts);
-    }
+        let data;
+        if (subcategory) {
+          data = await getProductsByCategory(subcategory);
+        } else {
+          data = await getAllProducts();
+        }
+
+        // Handle both array and paginated response
+        const productsArray = Array.isArray(data)
+          ? data
+          : (data.results && Array.isArray(data.results))
+          ? data.results
+          : [];
+
+        setProducts(productsArray);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError('Failed to load products');
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+
+    fetchProducts();
   }, [subcategory]);
 
-  // Clicking a subcategory updates state & URL
+  // Handle subcategory selection
   const handleSelectSubcategory = (slug) => {
     navigate(`/products/${slug}`);
   };
@@ -59,11 +88,43 @@ const Products = () => {
       <TopBar />
       <Navbar />
       <ProductsHero selectedSubcategory={selectedSubcategory} />
-      <SubcategoriesSection
-        subcategories={subcategories}
-        onSelect={handleSelectSubcategory}
-      />
-      <ProductsGrid products={products} selectedCategory={subcategory || "all"} />
+      
+      {/* Loading State for Categories */}
+      {loading ? (
+        <div className="w-full my-6 px-4 sm:px-6 lg:px-8">
+          <div className="h-32 bg-gray-200 animate-pulse rounded"></div>
+        </div>
+      ) : error ? (
+        <div className="w-full my-6 px-4 sm:px-6 lg:px-8 text-center py-12">
+          <p className="text-red-500">{error}</p>
+        </div>
+      ) : subcategories.length === 0 ? (
+        <div className="w-full my-6 px-4 sm:px-6 lg:px-8 text-center py-12">
+          <p className="text-gray-500">No categories available</p>
+        </div>
+      ) : (
+        <SubcategoriesSection
+          subcategories={subcategories}
+          onSelect={handleSelectSubcategory}
+        />
+      )}
+
+      {/* Products Grid with Loading/Error States */}
+      {productsLoading ? (
+        <div className="w-full my-6 px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="bg-gray-200 animate-pulse h-64 rounded"></div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <ProductsGrid 
+          products={products} 
+          selectedCategory={subcategory || "all"} 
+        />
+      )}
+
       <Footer />
       <FloatingActions />
     </div>
