@@ -1,46 +1,48 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 
+import { getSlides } from '../../api/services';
+
 const FlexSlider = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-
-  const slides = [
-    {
-      id: 1,
-      image:
-        'https://images.unsplash.com/photo-1584622781564-1d987709cea4?w=1200&h=600&fit=crop',
-      alt: 'Premium Kitchen Tap',
-      title: 'Premium Quality Stainless',
-      subtitle: 'Kitchen Premium Quality tap',
-      titleSpan: 'Long Body Tap',
-      buttonText: 'Shop Now',
-      link: '#',
-    },
-    {
-      id: 2,
-      image:
-        'https://images.unsplash.com/photo-1620626011761-996317b8d101?w=1200&h=600&fit=crop',
-      alt: 'Luxury Bathtub',
-      title: 'Plantex Acrylic Bathtub',
-      subtitle: 'Luxury Cast Iron bathtub',
-      titleSpan: 'For Bathroom',
-      buttonText: 'Shop Now',
-      link: '#',
-    },
-  ];
+  const [slides, setSlides] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const interval = 8000;
 
+  // Fetch slides from API
+  useEffect(() => {
+    const fetchSlides = async () => {
+      try {
+        setLoading(true);
+        const data = await getSlides();
+        // Handle both paginated (data.results) and non-paginated (data) responses
+        const slidesData = Array.isArray(data) ? data : (data.results || []);
+        setSlides(slidesData);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching slides:', err);
+        setError('Failed to load slides');
+        setSlides([]); // Set empty array on error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSlides();
+  }, []);
+
   const nextSlide = useCallback(() => {
-    if (isAnimating) return;
+    if (isAnimating || slides.length === 0) return;
     setIsAnimating(true);
     setCurrentSlide((prev) => (prev + 1) % slides.length);
     setTimeout(() => setIsAnimating(false), 750);
   }, [isAnimating, slides.length]);
 
   const prevSlide = useCallback(() => {
-    if (isAnimating) return;
+    if (isAnimating || slides.length === 0) return;
     setIsAnimating(true);
     setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
     setTimeout(() => setIsAnimating(false), 750);
@@ -53,14 +55,15 @@ const FlexSlider = () => {
     setTimeout(() => setIsAnimating(false), 750);
   };
 
-  // Auto-play always ON
+  // Auto-play
   useEffect(() => {
+    if (slides.length === 0) return;
     const autoPlay = setInterval(() => {
       nextSlide();
     }, interval);
 
     return () => clearInterval(autoPlay);
-  }, [nextSlide]);
+  }, [nextSlide, slides.length]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -71,6 +74,33 @@ const FlexSlider = () => {
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [nextSlide, prevSlide]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 sm:mt-8 lg:mt-10">
+        <div className="relative w-full h-64 sm:h-80 md:h-96 lg:h-[450px] bg-gray-200 rounded-lg animate-pulse flex items-center justify-center">
+          <p className="text-gray-500">Loading slides...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 sm:mt-8 lg:mt-10">
+        <div className="relative w-full h-64 sm:h-80 md:h-96 lg:h-[450px] bg-red-50 rounded-lg flex items-center justify-center">
+          <p className="text-red-500">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // No slides
+  if (slides.length === 0) {
+    return null;
+  }
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 sm:mt-8 lg:mt-10">
@@ -86,10 +116,9 @@ const FlexSlider = () => {
             >
               <img
                 src={slide.image}
-                alt={slide.alt}
+                alt={slide.title}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-black bg-opacity-50"></div>
 
               {/* Content */}
               <div className="absolute inset-0 flex items-center justify-center text-center text-white px-4 sm:px-6 lg:px-8">
@@ -115,7 +144,9 @@ const FlexSlider = () => {
                   >
                     <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold uppercase leading-tight mb-4 md:mb-6 lg:mb-8">
                       {slide.title}
-                      <span className="block text-white">{slide.titleSpan}</span>
+                      {slide.title_span && (
+                        <span className="block text-white">{slide.title_span}</span>
+                      )}
                     </h1>
                   </div>
 
@@ -130,7 +161,7 @@ const FlexSlider = () => {
                       href={slide.link}
                       className="inline-block bg-[#1228e1] text-white hover:bg-white hover:text-[#1228e1] px-6 md:px-8 py-3 md:py-4 font-semibold uppercase tracking-wide transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl rounded-sm"
                     >
-                      {slide.buttonText}
+                      {slide.button_text}
                     </a>
                   </div>
                 </div>

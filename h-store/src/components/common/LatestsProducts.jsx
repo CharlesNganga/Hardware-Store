@@ -1,69 +1,52 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import {
+  getBestSellerProducts,
+  getFeaturedProducts,
+  getLatestProducts,
+} from "../../api/services";
 
 import ProductCard from "../common/ProductCard";
 
 const LatestProducts = () => {
   const [activeTab, setActiveTab] = useState("New Arrivals");
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Sample products (8 items)
-  const products = [
-    {
-      id: 1,
-      company: "Bamburi",
-      name: "Cement 50kg",
-      price: "780",
-      image: "https://via.placeholder.com/300x400",
-    },
-    {
-      id: 2,
-      company: "Kentank",
-      name: "PPR Pipe 1 inch",
-      price: "1200",
-      image: "https://via.placeholder.com/300x400",
-    },
-    {
-      id: 3,
-      company: "Royal Mabati",
-      name: "Mabati Sheet 3m",
-      price: "2500",
-      image: "https://via.placeholder.com/300x400",
-    },
-    {
-      id: 4,
-      company: "Philips",
-      name: "LED Bulb 12W",
-      price: "350",
-      image: "https://via.placeholder.com/300x400",
-    },
-    {
-      id: 5,
-      company: "Crown Paints",
-      name: "Wall Paint 4L",
-      price: "1900",
-      image: "https://via.placeholder.com/300x400",
-    },
-    {
-      id: 6,
-      company: "Kentank",
-      name: "HDPE Fitting",
-      price: "1500",
-      image: "https://via.placeholder.com/300x400",
-    },
-    {
-      id: 7,
-      company: "Davis & Shirtliff",
-      name: "Water Pump",
-      price: "13500",
-      image: "https://via.placeholder.com/300x400",
-    },
-    {
-      id: 8,
-      company: "Kenchic",
-      name: "Shower Instant",
-      price: "4200",
-      image: "https://via.placeholder.com/300x400",
-    },
-  ];
+  // Fetch products based on active tab
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        let data = [];
+        if (activeTab === "New Arrivals") {
+          data = await getLatestProducts();
+        } else if (activeTab === "Featured") {
+          data = await getFeaturedProducts();
+        } else if (activeTab === "Best Sellers") {
+          data = await getBestSellerProducts();
+        }
+
+        // Handle both array and paginated responses
+        const list = Array.isArray(data)
+          ? data
+          : data?.results && Array.isArray(data.results)
+          ? data.results
+          : [];
+
+        setProducts(list);
+      } catch (err) {
+        console.error("Error loading products:", err);
+        setError("Failed to load products. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, [activeTab]);
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-12">
@@ -89,18 +72,44 @@ const LatestProducts = () => {
         ))}
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="bg-gray-200 animate-pulse aspect-[4/5] rounded-lg"
+            ></div>
+          ))}
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="text-center text-red-500 py-8">{error}</div>
+      )}
+
+      {/* No Products */}
+      {!loading && !error && products.length === 0 && (
+        <div className="text-center text-gray-500 py-8">
+          No products found for this category.
+        </div>
+      )}
+
       {/* Product Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-        {products.map((product) => (
-          <ProductCard
-            key={product.id}
-            image={product.image}
-            company={product.company}
-            name={product.name}
-            price={product.price}
-          />
-        ))}
-      </div>
+      {!loading && !error && products.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+          {products.map((product) => (
+            <ProductCard
+              key={product.id}
+              image={product.thumbnail || "https://via.placeholder.com/300x400"}
+              company={product.company}
+              name={product.name}
+              price={product.price}
+            />
+          ))}
+        </div>
+      )}
 
       {/* All Products Button */}
       <div className="text-center">
