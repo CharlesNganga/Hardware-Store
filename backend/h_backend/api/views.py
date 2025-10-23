@@ -89,6 +89,12 @@ class SlideListView(generics.ListAPIView):
     """
     queryset = Slide.objects.filter(is_active=True)
     serializer_class = SlideSerializer
+    
+    def get_serializer_context(self):
+        # Pass request context to serializer for building absolute URLs
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
 
 
 class CompanyInfoView(APIView):

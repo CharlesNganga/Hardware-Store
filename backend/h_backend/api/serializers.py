@@ -66,6 +66,9 @@ class SlideSerializer(serializers.ModelSerializer):
     """
     Serializer for Slide model (Homepage Hero Slider)
     """
+    # Return full URL for image
+    image = serializers.SerializerMethodField()
+    
     class Meta:
         model = Slide
         fields = [
@@ -78,6 +81,14 @@ class SlideSerializer(serializers.ModelSerializer):
             'image',
             'order',
         ]
+    
+    def get_image(self, obj):
+        request = self.context.get('request')
+        if obj.image and hasattr(obj.image, 'url'):
+            if request is not None:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
 
 
 class CompanyInfoSerializer(serializers.ModelSerializer):
