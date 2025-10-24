@@ -118,7 +118,11 @@ const Products = () => {
       {/* Option A: Hide Hero during search */}
       {/* {!searchTerm && <ProductsHero selectedSubcategory={selectedSubcategory} />} */}
       {/* Option B: Modify Hero to show search term (requires changing ProductsHero component) */}
-      <ProductsHero selectedSubcategory={selectedSubcategory} searchTerm={searchTerm} />
+      <ProductsHero
+        selectedSubcategory={selectedSubcategory}
+        searchTerm={searchTerm}
+        categories={subcategories} // Pass the fetched categories
+      />
 
       {/* Categories Section (Only show if not searching) */}
       {!searchTerm && (
