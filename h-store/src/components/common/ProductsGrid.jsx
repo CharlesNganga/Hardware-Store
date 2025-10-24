@@ -2,7 +2,7 @@ import React, { useState } from "react";
 
 import ProductCard from "./ProductCard";
 
-const ProductsGrid = ({ products,selectedCategory }) => {
+const ProductsGrid = ({ products, selectedCategory }) => {
   const productsPerPage = 16; // 4x4 grid
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -17,19 +17,31 @@ const ProductsGrid = ({ products,selectedCategory }) => {
   return (
     <div className="w-full my-6 px-4 sm:px-6 lg:px-8">
       <div className="mb-6">
-  <h2 className="text-2xl font-bold text-gray-900 relative inline-block">
-    {selectedCategory === "all"
-      ? "All Products"
-      : selectedCategory
-          .replace(/-/g, " ")
-          .replace(/\b\w/g, (c) => c.toUpperCase())}
-    <span className="block w-16 h-1 bg-[#1228e1] mt-2 rounded"></span>
-  </h2>
-</div>
+        <h2 className="text-2xl font-bold text-gray-900 relative inline-block">
+          {selectedCategory === "all"
+            ? "All Products"
+            : selectedCategory
+                .replace(/-/g, " ")
+                .replace(/\b\w/g, (c) => c.toUpperCase())}
+          <span className="block w-16 h-1 bg-[#1228e1] mt-2 rounded"></span>
+        </h2>
+      </div>
+
       {/* Products Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
         {currentProducts.map((product) => (
-          <ProductCard key={product.id} {...product} />
+          <ProductCard
+            key={product.id}
+            id={product.id}
+            name={product.name}
+            company={product.company}
+            price={product.price}
+            thumbnail={product.thumbnail}
+            image_1={product.image_1}
+            image_2={product.image_2}
+            category_name={product.category_name}
+            description={product.description}
+          />
         ))}
       </div>
 

@@ -3,7 +3,7 @@ import React, { useState } from "react";
 
 import ProductModal from "./ProductModal";
 
-const ProductCard = ({ id, company, name, price, thumbnail, image }) => {
+const ProductCard = ({ id, company, name, price, thumbnail, image, image_1, image_2, category_name, description }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Use thumbnail or image prop, with fallback
@@ -12,6 +12,9 @@ const ProductCard = ({ id, company, name, price, thumbnail, image }) => {
   const displayCompany = company || "Unknown Brand";
   const displayPrice = price || "N/A";
 
+  // Build images array for gallery (filter out null/undefined values)
+  const imageGallery = [thumbnail, image_1, image_2].filter(Boolean);
+
   // Product object for modal
   const product = {
     id: id,
@@ -19,16 +22,20 @@ const ProductCard = ({ id, company, name, price, thumbnail, image }) => {
     company: displayCompany,
     price: displayPrice,
     thumbnail: displayImage,
+    image_1: image_1,
+    image_2: image_2,
+    images: imageGallery.length > 0 ? imageGallery : [displayImage], // All available images
     brand: displayCompany,
     condition: "New",
-    images: [displayImage], // Modal expects array of images
+    category_name: category_name,
+    description: description,
   };
 
   return (
     <>
       <div className="relative group bg-white shadow hover:shadow-lg transition duration-300 p-3">
         {/* Product Image */}
-        <div className="relative w-full aspect-[4/5]  overflow-hidden">
+        <div className="relative w-full aspect-[4/5] bg-black overflow-hidden">
           <img
             src={displayImage}
             alt={displayName}

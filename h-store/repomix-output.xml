@@ -903,28 +903,43 @@ import React, { useState } from "react";
 
 import ProductModal from "./ProductModal";
 
-const ProductCard = ({ id, company, name, price, image, product }) => {
+const ProductCard = ({ id, company, name, price, thumbnail, image }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Fallbacks if props are missing
-  const displayImage = image || "https://via.placeholder.com/400x300";
+  // Use thumbnail or image prop, with fallback
+  const displayImage = thumbnail || image || "https://via.placeholder.com/400x300";
   const displayName = name || "Unnamed Product";
   const displayCompany = company || "Unknown Brand";
   const displayPrice = price || "N/A";
+
+  // Product object for modal
+  const product = {
+    id: id,
+    name: displayName,
+    company: displayCompany,
+    price: displayPrice,
+    thumbnail: displayImage,
+    brand: displayCompany,
+    condition: "New",
+    images: [displayImage], // Modal expects array of images
+  };
 
   return (
     <>
       <div className="relative group bg-white shadow hover:shadow-lg transition duration-300 p-3">
         {/* Product Image */}
-        <div className="relative w-full aspect-[4/5] bg-black overflow-hidden">
+        <div className="relative w-full aspect-[4/5]  overflow-hidden">
           <img
             src={displayImage}
             alt={displayName}
             className="w-full h-full object-cover group-hover:opacity-90 transition duration-300"
+            onError={(e) => {
+              e.target.src = "https://via.placeholder.com/400x300?text=No+Image";
+            }}
           />
 
           {/* Hover Icons */}
-          <div className="absolute inset-0 flex items-center justify-center  bg-opacity-40 opacity-0 group-hover:opacity-100 transition duration-300 space-x-3">
+          <div className="absolute inset-0 flex items-center justify-center bg-opacity-40 opacity-0 group-hover:opacity-100 transition duration-300 space-x-3">
             <button className="bg-white p-2 rounded-full shadow hover:bg-[#1228e1] hover:text-white transition">
               <Heart className="w-5 h-5" />
             </button>
@@ -956,7 +971,7 @@ const ProductCard = ({ id, company, name, price, image, product }) => {
       <ProductModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        product={product || { id, name: displayName, company: displayCompany, price: displayPrice, thumbnail: displayImage }}
+        product={product}
       />
     </>
   );
@@ -1222,26 +1237,51 @@ export default ProductsHero;
 </file>
 
 <file path="src/components/common/SubcategoriesSection.jsx">
+import React from "react";
+
 const SubcategoriesSection = ({ subcategories, onSelect }) => {
   return (
     <div className="w-full my-6 px-4 sm:px-6 lg:px-8">
-      <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">Subcategories</h2>
+      {/* Section Title */}
+      <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 relative inline-block">
+        Subcategories
+        <span className="block w-16 h-1 bg-blue-600 mt-1 rounded"></span>
+      </h2>
 
+      {/* Subcategory Cards */}
       <div
-        className="grid gap-4 h-[25vh]"
-        style={{ gridTemplateColumns: `repeat(${subcategories.length}, minmax(0, 1fr))` }}
+        className="grid gap-6 sm:gap-8"
+        style={{
+          gridTemplateColumns: `repeat(auto-fill, minmax(150px, 1fr))`,
+        }}
       >
-        {subcategories.map(subcat => (
+        {subcategories.map((subcat) => (
           <div
             key={subcat.id}
-            className="w-full aspect-[4/5] bg-white shadow hover:shadow-lg transition duration-300 flex flex-col cursor-pointer"
+            className="group relative bg-white rounded-2xl shadow-sm hover:shadow-2xl overflow-hidden transform hover:-translate-y-2 transition-all duration-500 cursor-pointer"
             onClick={() => onSelect(subcat.slug)}
           >
-            <div className="h-4/5 w-full bg-black flex items-center justify-center">
-              <span className="text-white font-semibold text-sm">Image</span>
+            {/* Category Image */}
+            <div className="h-40 w-full bg-gray-200 relative overflow-hidden">
+              {subcat.image ? (
+                <img
+                  src={subcat.image}
+                  alt={subcat.name}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+              ) : (
+                <span className="absolute inset-0 flex items-center justify-center text-gray-600 font-semibold text-sm">
+                  No Image
+                </span>
+              )}
+
+              {/* Overlay effect */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
             </div>
-            <div className="h-1/5 flex items-center justify-center bg-white text-center px-2">
-              <span className="font-semibold text-gray-900 text-sm sm:text-base break-words">
+
+            {/* Category Name */}
+            <div className="h-16 flex items-center justify-center bg-white text-center px-2">
+              <span className="font-semibold text-gray-800 text-sm sm:text-base group-hover:text-blue-600 transition-colors duration-500">
                 {subcat.name}
               </span>
             </div>
@@ -1310,76 +1350,164 @@ export default ThreeColumnSection;
 <file path="src/components/navigation/Footer.jsx">
 import { FaFacebook, FaInstagram, FaTiktok, FaWhatsapp } from "react-icons/fa";
 import { Mail, MapPin, Phone } from "lucide-react";
-
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { getCategories, getCompanyInfo } from "../../api/services";
 
 const Footer = () => {
+  const [companyInfo, setCompanyInfo] = useState(null);
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch company info
+        const info = await getCompanyInfo();
+        setCompanyInfo(info);
+
+        // Fetch categories
+        const cats = await getCategories();
+        setCategories(Array.isArray(cats) ? cats : cats.results || []);
+      } catch (err) {
+        console.error("Error fetching footer data:", err);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   return (
     <footer className="bg-white text-gray-800 pt-10 pb-6 border-t border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-8">
-        
         {/* Product Categories */}
         <div>
           <h3 className="text-lg font-bold mb-4 uppercase">Product Categories</h3>
-          <ul className="space-y-2">
-            <li><a href="/categories/plumbing-piping" className="hover:text-[#1228e1]">Plumbing & Piping</a></li>
-            <li><a href="/categories/electrical" className="hover:text-[#1228e1]">Electrical</a></li>
-            <li><a href="/categories/carpentry" className="hover:text-[#1228e1]">Carpentry</a></li>
-            <li><a href="/categories/steel" className="hover:text-[#1228e1]">Steel</a></li>
-            <li><a href="/categories/glues" className="hover:text-[#1228e1]">Glues</a></li>
-            <li><a href="/categories/paints" className="hover:text-[#1228e1]">Paints</a></li>
-            <li><a href="/categories/gas" className="hover:text-[#1228e1]">Gas</a></li>
-            <li><a href="/categories/curtains" className="hover:text-[#1228e1]">Curtains</a></li>
-            <li><a href="/categories/cement" className="hover:text-[#1228e1]">Cement</a></li>
-            <li><a href="/categories/home-equipment" className="hover:text-[#1228e1]">Home Equipment</a></li>
-          </ul>
+          {categories.length > 0 ? (
+            <ul className="space-y-2">
+              {categories.slice(0, 10).map((category) => (
+                <li key={category.id}>
+                  <a
+                    href={`/products/${category.slug}`}
+                    className="hover:text-[#1228e1] transition-colors"
+                  >
+                    {category.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="space-y-2 text-gray-400">
+              <p>Loading categories...</p>
+            </div>
+          )}
         </div>
 
         {/* Contact Us */}
         <div>
           <h3 className="text-lg font-bold mb-4 uppercase">Contact Us</h3>
-          <ul className="space-y-3">
-            <li className="flex items-center space-x-2">
-              <MapPin className="w-5 h-5 text-gray-600" />
-              <span>123 Hardware St, Nairobi, Kenya</span>
-            </li>
-            <li className="flex items-center space-x-2">
-              <Mail className="w-5 h-5 text-gray-600" />
-              <span>info@hardwarestore.co.ke</span>
-            </li>
-            <li className="flex items-center space-x-2">
-              <Phone className="w-5 h-5 text-gray-600" />
-              <span>+254 700 123456</span>
-            </li>
-          </ul>
+          {companyInfo ? (
+            <ul className="space-y-3">
+              <li className="flex items-start space-x-2">
+                <MapPin className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" />
+                <span>{companyInfo.address}</span>
+              </li>
+              <li className="flex items-center space-x-2">
+                <Mail className="w-5 h-5 text-gray-600" />
+                <a
+                  href={`mailto:${companyInfo.email}`}
+                  className="hover:text-[#1228e1] transition-colors"
+                >
+                  {companyInfo.email}
+                </a>
+              </li>
+              <li className="flex items-center space-x-2">
+                <Phone className="w-5 h-5 text-gray-600" />
+                <a
+                  href={`tel:${companyInfo.phone}`}
+                  className="hover:text-[#1228e1] transition-colors"
+                >
+                  {companyInfo.phone}
+                </a>
+              </li>
+            </ul>
+          ) : (
+            <div className="space-y-3 text-gray-400">
+              <p>Loading contact info...</p>
+            </div>
+          )}
         </div>
 
         {/* My Account */}
         <div>
-          <h3 className="text-lg font-bold mb-4 uppercase">My Account</h3>
+          <h3 className="text-lg font-bold mb-4 uppercase">Quick Links</h3>
           <ul className="space-y-2">
-            <li><a href="/signin" className="hover:text-[#1228e1]">Sign In</a></li>
-            <li><a href="/order-tracking" className="hover:text-[#1228e1]">Order Tracking</a></li>
-            <li><a href="/create-account" className="hover:text-[#1228e1]">Create Account</a></li>
+            <li>
+              <a href="/" className="hover:text-[#1228e1] transition-colors">
+                Home
+              </a>
+            </li>
+            <li>
+              <a href="/products" className="hover:text-[#1228e1] transition-colors">
+                All Products
+              </a>
+            </li>
+            <li>
+              <a href="/contact" className="hover:text-[#1228e1] transition-colors">
+                Contact Us
+              </a>
+            </li>
           </ul>
         </div>
       </div>
 
       {/* Social Media Icons */}
-      <div className="mt-10 flex justify-center space-x-6">
-        <a href="https://instagram.com" target="_blank" rel="noreferrer" className="text-gray-500 hover:text-[#1228e1] transition">
-          <FaInstagram className="w-6 h-6" />
-        </a>
-        <a href="https://tiktok.com" target="_blank" rel="noreferrer" className="text-gray-500 hover:text-[#1228e1] transition">
-          <FaTiktok className="w-6 h-6" />
-        </a>
-        <a href="https://wa.me/254700123456" target="_blank" rel="noreferrer" className="text-gray-500 hover:text-[#1228e1] transition">
-          <FaWhatsapp className="w-6 h-6" />
-        </a>
-        <a href="https://facebook.com" target="_blank" rel="noreferrer" className="text-gray-500 hover:text-[#1228e1] transition">
-          <FaFacebook className="w-6 h-6" />
-        </a>
-      </div>
+      {companyInfo && (
+        <div className="mt-10 flex justify-center space-x-6">
+          {companyInfo.instagram_url && (
+            <a
+              href={companyInfo.instagram_url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-gray-500 hover:text-[#1228e1] transition"
+              title="Instagram"
+            >
+              <FaInstagram className="w-6 h-6" />
+            </a>
+          )}
+          {companyInfo.tiktok_url && (
+            <a
+              href={companyInfo.tiktok_url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-gray-500 hover:text-[#1228e1] transition"
+              title="TikTok"
+            >
+              <FaTiktok className="w-6 h-6" />
+            </a>
+          )}
+          {companyInfo.whatsapp_number && (
+            <a
+              href={`https://wa.me/${companyInfo.whatsapp_number}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-gray-500 hover:text-[#1228e1] transition"
+              title="WhatsApp"
+            >
+              <FaWhatsapp className="w-6 h-6" />
+            </a>
+          )}
+          {companyInfo.facebook_url && (
+            <a
+              href={companyInfo.facebook_url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-gray-500 hover:text-[#1228e1] transition"
+              title="Facebook"
+            >
+              <FaFacebook className="w-6 h-6" />
+            </a>
+          )}
+        </div>
+      )}
 
       {/* Footer Bottom */}
       <div className="mt-6 border-t border-gray-200 pt-4 text-center text-sm text-gray-500">
@@ -1515,9 +1643,26 @@ export default Navbar;
 </file>
 
 <file path="src/components/navigation/Topbar.jsx">
-import React from "react";
+import React, { useEffect, useState } from "react";
+
+import { getCompanyInfo } from "../../api/services";
 
 const TopBar = () => {
+  const [companyInfo, setCompanyInfo] = useState(null);
+
+  useEffect(() => {
+    const fetchCompanyInfo = async () => {
+      try {
+        const data = await getCompanyInfo();
+        setCompanyInfo(data);
+      } catch (err) {
+        console.error("Error fetching company info:", err);
+      }
+    };
+
+    fetchCompanyInfo();
+  }, []);
+
   return (
     <div className="w-full bg-[#1228e1] text-white text-sm px-6 py-2 flex items-center justify-between">
       {/* Left message */}
@@ -1525,12 +1670,24 @@ const TopBar = () => {
 
       {/* Contact info */}
       <div className="flex space-x-6">
-        <a href="mailto:info@yourstore.com" className="hover:underline">
-          info@yourstore.com
-        </a>
-        <a href="tel:+254700000000" className="hover:underline">
-          +254 700 000 000
-        </a>
+        {companyInfo ? (
+          <>
+            <a 
+              href={`mailto:${companyInfo.email}`} 
+              className="hover:underline"
+            >
+              {companyInfo.email}
+            </a>
+            <a 
+              href={`tel:${companyInfo.phone}`} 
+              className="hover:underline"
+            >
+              {companyInfo.phone}
+            </a>
+          </>
+        ) : (
+          <span className="text-white/80">Loading...</span>
+        )}
       </div>
     </div>
   );
@@ -1575,6 +1732,7 @@ export default Home;
 
 <file path="src/pages/Products.jsx">
 import React, { useEffect, useState } from "react";
+import { getAllProducts, getCategories, getProductsByCategory } from "../api/services";
 import { useNavigate, useParams } from "react-router-dom";
 
 import FloatingActions from "../components/common/FloatingActions";
@@ -1590,42 +1748,70 @@ const Products = () => {
   const navigate = useNavigate();
 
   const [selectedSubcategory, setSelectedSubcategory] = useState(subcategory || null);
+  const [subcategories, setSubcategories] = useState([]);
   const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const subcategories = [
-    { id: 1, name: "Plumbing & Piping", slug: "plumbing-piping" },
-    { id: 2, name: "Electrical", slug: "electrical" },
-    { id: 3, name: "Carpentry", slug: "carpentry" },
-    { id: 4, name: "Steel", slug: "steel" },
-    { id: 5, name: "Glues", slug: "glues" },
-    { id: 6, name: "Paints", slug: "paints" },
-    { id: 7, name: "Gas", slug: "gas" },
-    { id: 8, name: "Curtains", slug: "curtains" },
-    { id: 9, name: "Cement", slug: "cement" },
-    { id: 10, name: "Home Equipment", slug: "home-equipment" },
-  ];
-
-  // Update state when URL changes
+  // Fetch categories on mount
   useEffect(() => {
-    setSelectedSubcategory(subcategory || null);
+    const fetchCategories = async () => {
+      try {
+        setLoading(true);
+        const data = await getCategories();
+        // Handle both array and paginated response
+        const categoriesArray = Array.isArray(data) 
+          ? data 
+          : (data.results && Array.isArray(data.results)) 
+          ? data.results 
+          : [];
+        setSubcategories(categoriesArray);
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+        setError('Failed to load categories');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    // const allProducts = [
-    //   { id: 1, name: "Pipe 1", company: "A Co", price: 500, category: "plumbing-piping" },
-    //   { id: 2, name: "Wire 1", company: "B Co", price: 300, category: "electrical" },
-    //   { id: 3, name: "Hammer", company: "C Co", price: 800, category: "carpentry" },
-    //   { id: 4, name: "Steel Sheet", company: "D Co", price: 1200, category: "steel" },
-    // ];
-    const allProducts=[{id:1,name:"Pipe 1",company:"A Co",price:500,category:"plumbing-piping"},{id:2,name:"Wire 1",company:"B Co",price:300,category:"electrical"},{id:3,name:"Hammer",company:"C Co",price:800,category:"carpentry"},{id:4,name:"Steel Sheet",company:"D Co",price:1200,category:"steel"},{id:5,name:"Glue 1",company:"E Co",price:150,category:"glues"},{id:6,name:"Paint Brush",company:"F Co",price:250,category:"paints"},{id:7,name:"Gas Cylinder",company:"G Co",price:3500,category:"gas"},{id:8,name:"Curtain Set",company:"H Co",price:1200,category:"curtains"},{id:9,name:"Cement Bag",company:"I Co",price:700,category:"cement"},{id:10,name:"Drill Machine",company:"J Co",price:1500,category:"home-equipment"},{id:11,name:"Pipe 2",company:"A Co",price:550,category:"plumbing-piping"},{id:12,name:"Wire 2",company:"B Co",price:320,category:"electrical"},{id:13,name:"Hammer 2",company:"C Co",price:850,category:"carpentry"},{id:14,name:"Steel Rod",company:"D Co",price:1300,category:"steel"},{id:15,name:"Glue 2",company:"E Co",price:180,category:"glues"},{id:16,name:"Paint Roller",company:"F Co",price:300,category:"paints"},{id:17,name:"Gas Stove",company:"G Co",price:4500,category:"gas"},{id:18,name:"Curtain Rod",company:"H Co",price:400,category:"curtains"},{id:19,name:"Cement Sack",company:"I Co",price:750,category:"cement"},{id:20,name:"Blender",company:"J Co",price:2000,category:"home-equipment"},{id:21,name:"Pipe 3",company:"A Co",price:600,category:"plumbing-piping"},{id:22,name:"Wire 3",company:"B Co",price:350,category:"electrical"},{id:23,name:"Saw",company:"C Co",price:900,category:"carpentry"},{id:24,name:"Steel Beam",company:"D Co",price:1400,category:"steel"},{id:25,name:"Glue 3",company:"E Co",price:200,category:"glues"},{id:26,name:"Paint Can",company:"F Co",price:400,category:"paints"},{id:27,name:"Gas Regulator",company:"G Co",price:1500,category:"gas"},{id:28,name:"Curtain Fabric",company:"H Co",price:900,category:"curtains"},{id:29,name:"Cement Mix",company:"I Co",price:800,category:"cement"},{id:30,name:"Toaster",company:"J Co",price:1200,category:"home-equipment"},{id:31,name:"Pipe 4",company:"A Co",price:650,category:"plumbing-piping"},{id:32,name:"Wire 4",company:"B Co",price:370,category:"electrical"},{id:33,name:"Chisel",company:"C Co",price:950,category:"carpentry"},{id:34,name:"Steel Panel",company:"D Co",price:1500,category:"steel"},{id:35,name:"Glue 4",company:"E Co",price:220,category:"glues"},{id:36,name:"Paint Tray",company:"F Co",price:350,category:"paints"},{id:37,name:"Gas Pipe",company:"G Co",price:1200,category:"gas"},{id:38,name:"Curtain Hook",company:"H Co",price:150,category:"curtains"},{id:39,name:"Cement Mixer",company:"I Co",price:3000,category:"cement"},{id:40,name:"Microwave",company:"J Co",price:4000,category:"home-equipment"}];
+    fetchCategories();
+  }, []);
 
+  // Fetch products when subcategory changes
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setProductsLoading(true);
+        setSelectedSubcategory(subcategory || null);
 
-    if (subcategory) {
-      setProducts(allProducts.filter(p => p.category === subcategory));
-    } else {
-      setProducts(allProducts);
-    }
+        let data;
+        if (subcategory) {
+          data = await getProductsByCategory(subcategory);
+        } else {
+          data = await getAllProducts();
+        }
+
+        // Handle both array and paginated response
+        const productsArray = Array.isArray(data)
+          ? data
+          : (data.results && Array.isArray(data.results))
+          ? data.results
+          : [];
+
+        setProducts(productsArray);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError('Failed to load products');
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+
+    fetchProducts();
   }, [subcategory]);
 
-  // Clicking a subcategory updates state & URL
+  // Handle subcategory selection
   const handleSelectSubcategory = (slug) => {
     navigate(`/products/${slug}`);
   };
@@ -1635,11 +1821,43 @@ const Products = () => {
       <TopBar />
       <Navbar />
       <ProductsHero selectedSubcategory={selectedSubcategory} />
-      <SubcategoriesSection
-        subcategories={subcategories}
-        onSelect={handleSelectSubcategory}
-      />
-      <ProductsGrid products={products} selectedCategory={subcategory || "all"} />
+      
+      {/* Loading State for Categories */}
+      {loading ? (
+        <div className="w-full my-6 px-4 sm:px-6 lg:px-8">
+          <div className="h-32 bg-gray-200 animate-pulse rounded"></div>
+        </div>
+      ) : error ? (
+        <div className="w-full my-6 px-4 sm:px-6 lg:px-8 text-center py-12">
+          <p className="text-red-500">{error}</p>
+        </div>
+      ) : subcategories.length === 0 ? (
+        <div className="w-full my-6 px-4 sm:px-6 lg:px-8 text-center py-12">
+          <p className="text-gray-500">No categories available</p>
+        </div>
+      ) : (
+        <SubcategoriesSection
+          subcategories={subcategories}
+          onSelect={handleSelectSubcategory}
+        />
+      )}
+
+      {/* Products Grid with Loading/Error States */}
+      {productsLoading ? (
+        <div className="w-full my-6 px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="bg-gray-200 animate-pulse h-64 rounded"></div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <ProductsGrid 
+          products={products} 
+          selectedCategory={subcategory || "all"} 
+        />
+      )}
+
       <Footer />
       <FloatingActions />
     </div>
