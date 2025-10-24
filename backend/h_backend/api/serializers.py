@@ -1,11 +1,10 @@
 from rest_framework import serializers
-from .models import Category, Product, Slide, CompanyInfo, CompanyLogo
+from .models import Category, Product, Slide, CompanyInfo, CompanyLogo, Cart, CartItem
 
 
 class CategorySerializer(serializers.ModelSerializer):
     """
     Serializer for Category model
-    Returns: id, name, slug, image
     """
     image = serializers.SerializerMethodField()
     
@@ -24,13 +23,11 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     """
-    Serializer for Product model
-    Includes category details and all product information
+    Full Product serializer with category details
     """
     category_name = serializers.CharField(source='category.name', read_only=True)
     category_slug = serializers.CharField(source='category.slug', read_only=True)
     
-    # Return full URLs for images
     thumbnail = serializers.SerializerMethodField()
     image_1 = serializers.SerializerMethodField()
     image_2 = serializers.SerializerMethodField()
@@ -75,8 +72,7 @@ class ProductSerializer(serializers.ModelSerializer):
 
 class ProductListSerializer(serializers.ModelSerializer):
     """
-    Lighter serializer for product lists (without full details)
-    Used for grid views to reduce payload size
+    Lighter serializer for product lists
     """
     category_name = serializers.CharField(source='category.name', read_only=True)
     category_slug = serializers.CharField(source='category.slug', read_only=True)
@@ -128,9 +124,8 @@ class ProductListSerializer(serializers.ModelSerializer):
 
 class SlideSerializer(serializers.ModelSerializer):
     """
-    Serializer for Slide model (Homepage Hero Slider)
+    Serializer for Slide model
     """
-    # Return full URL for image
     image = serializers.SerializerMethodField()
     
     class Meta:
@@ -175,7 +170,7 @@ class CompanyInfoSerializer(serializers.ModelSerializer):
 
 class CompanyLogoSerializer(serializers.ModelSerializer):
     """
-    Serializer for Company Logos (scrolling section)
+    Serializer for Company Logos
     """
     logo = serializers.SerializerMethodField()
     
@@ -190,3 +185,66 @@ class CompanyLogoSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.logo.url)
             return obj.logo.url
         return None
+
+
+# ============================================
+# NEW CART SERIALIZERS
+# ============================================
+
+class CartItemSerializer(serializers.ModelSerializer):
+    """
+    Serializer for CartItem - includes full product details
+    """
+    # Nest the full product information
+    product = ProductListSerializer(read_only=True)
+    
+    # Add calculated field for total price of this item
+    total_item_price = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = CartItem
+        fields = [
+            'id',
+            'product',
+            'quantity',
+            'total_item_price',
+            'created_at',
+        ]
+        read_only_fields = ['id', 'created_at']
+    
+    def get_total_item_price(self, obj):
+        """Calculate quantity * price for this cart item"""
+        return float(obj.total_price)
+
+
+class CartSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Cart - includes all cart items and totals
+    """
+    # Nest all cart items with full details
+    items = CartItemSerializer(many=True, read_only=True)
+    
+    # Calculated fields for cart summary
+    item_count = serializers.SerializerMethodField()
+    total_price = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Cart
+        fields = [
+            'id',
+            'session_key',
+            'items',
+            'item_count',
+            'total_price',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'session_key', 'created_at', 'updated_at']
+    
+    def get_item_count(self, obj):
+        """Sum of all quantities in cart"""
+        return obj.item_count
+    
+    def get_total_price(self, obj):
+        """Total price of all items in cart"""
+        return float(obj.total_price)

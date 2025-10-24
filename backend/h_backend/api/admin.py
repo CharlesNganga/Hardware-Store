@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, Product, Slide, CompanyInfo, CompanyLogo
+from .models import Category, Product, Slide, CompanyInfo, CompanyLogo, Cart, CartItem
 
 
 @admin.register(Category)
@@ -9,7 +9,7 @@ class CategoryAdmin(admin.ModelAdmin):
     """
     list_display = ['name', 'slug', 'created_at']
     search_fields = ['name', 'slug']
-    prepopulated_fields = {'slug': ('name',)}  # Auto-generate slug from name
+    prepopulated_fields = {'slug': ('name',)}
     readonly_fields = ['created_at', 'updated_at']
     
     fieldsets = (
@@ -18,7 +18,7 @@ class CategoryAdmin(admin.ModelAdmin):
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)  # This section starts collapsed
+            'classes': ('collapse',)
         }),
     )
 
@@ -31,7 +31,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_display = ['name', 'company', 'category', 'price', 'is_featured', 'is_bestseller', 'is_active', 'created_at']
     list_filter = ['category', 'is_featured', 'is_bestseller', 'is_active', 'created_at']
     search_fields = ['name', 'company', 'description']
-    list_editable = ['is_featured', 'is_bestseller', 'is_active']  # Edit these directly from list view
+    list_editable = ['is_featured', 'is_bestseller', 'is_active']
     readonly_fields = ['created_at', 'updated_at']
     
     fieldsets = (
@@ -52,7 +52,6 @@ class ProductAdmin(admin.ModelAdmin):
         }),
     )
     
-    # Show 20 products per page
     list_per_page = 20
 
 
@@ -108,11 +107,9 @@ class CompanyInfoAdmin(admin.ModelAdmin):
     readonly_fields = ['updated_at']
     
     def has_add_permission(self, request):
-        # Only allow one instance (Singleton pattern)
         return not CompanyInfo.objects.exists()
     
     def has_delete_permission(self, request, obj=None):
-        # Prevent deletion of company info
         return False
 
 
@@ -140,3 +137,91 @@ class CompanyLogoAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+
+# ============================================
+# NEW CART ADMIN
+# ============================================
+
+class CartItemInline(admin.TabularInline):
+    """
+    Inline admin for CartItem - shows items within Cart admin
+    """
+    model = CartItem
+    extra = 0
+    readonly_fields = ['product', 'quantity', 'total_price', 'created_at']
+    can_delete = True
+    
+    def total_price(self, obj):
+        """Display calculated total price"""
+        return f"Ksh {obj.total_price}"
+    total_price.short_description = 'Total Price'
+
+
+@admin.register(Cart)
+class CartAdmin(admin.ModelAdmin):
+    """
+    Admin configuration for Cart model
+    """
+    list_display = ['id', 'session_key_short', 'item_count', 'total_price_display', 'created_at', 'updated_at']
+    search_fields = ['session_key']
+    readonly_fields = ['session_key', 'created_at', 'updated_at', 'item_count', 'total_price_display']
+    list_filter = ['created_at', 'updated_at']
+    inlines = [CartItemInline]
+    
+    fieldsets = (
+        ('Cart Information', {
+            'fields': ('session_key', 'item_count', 'total_price_display')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+        }),
+    )
+    
+    def session_key_short(self, obj):
+        """Display shortened session key"""
+        return f"{obj.session_key[:8]}..."
+    session_key_short.short_description = 'Session'
+    
+    def total_price_display(self, obj):
+        """Display formatted total price"""
+        return f"Ksh {obj.total_price}"
+    total_price_display.short_description = 'Total Price'
+    
+    def has_add_permission(self, request):
+        """Carts should only be created through the API"""
+        return False
+
+
+@admin.register(CartItem)
+class CartItemAdmin(admin.ModelAdmin):
+    """
+    Admin configuration for CartItem model
+    """
+    list_display = ['id', 'cart_session', 'product', 'quantity', 'total_price_display', 'created_at']
+    list_filter = ['created_at', 'updated_at']
+    search_fields = ['cart__session_key', 'product__name']
+    readonly_fields = ['cart', 'product', 'quantity', 'total_price_display', 'created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Cart Item Information', {
+            'fields': ('cart', 'product', 'quantity', 'total_price_display')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+        }),
+    )
+    
+    def cart_session(self, obj):
+        """Display cart session key (shortened)"""
+        return f"{obj.cart.session_key[:8]}..."
+    cart_session.short_description = 'Cart Session'
+    
+    def total_price_display(self, obj):
+        """Display formatted total price"""
+        return f"Ksh {obj.total_price}"
+    total_price_display.short_description = 'Total Price'
+    
+    def has_add_permission(self, request):
+        """Cart items should only be created through the API"""
+        return False

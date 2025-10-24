@@ -1,5 +1,9 @@
-// src/api.js
+// src/api/api.js
 import axios from "axios";
+
+// --- THIS IS THE CRITICAL LINE ---
+// Tell Axios to send cookies (like Django's sessionid) with every request
+axios.defaults.withCredentials = true;
 
 // 1. Keep this export from your previous version.
 // You NEED this for image paths.

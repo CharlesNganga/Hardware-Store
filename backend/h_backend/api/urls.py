@@ -9,6 +9,7 @@ from .views import (
     SlideListView,
     CompanyInfoView,
     CompanyLogoListView,
+    CartView,  # NEW
 )
 
 urlpatterns = [
@@ -26,4 +27,7 @@ urlpatterns = [
     path('slides/', SlideListView.as_view(), name='slide-list'),
     path('company-logos/', CompanyLogoListView.as_view(), name='company-logo-list'),
     path('company-info/', CompanyInfoView.as_view(), name='company-info'),
+    
+    # Cart (NEW - Anonymous Session-Based Cart)
+    path('cart/', CartView.as_view(), name='cart-view'),
 ]

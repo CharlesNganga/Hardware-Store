@@ -75,7 +75,7 @@ const CompanyLogos = () => {
       <hr className="border-gray-300 mt-6" />
 
       {/* Scroll Animation */}
-      <style jsx>{`
+      <style >{`
         @keyframes scroll {
           0% {
             transform: translateX(0);

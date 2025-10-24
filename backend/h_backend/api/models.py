@@ -17,7 +17,6 @@ class Category(models.Model):
         ordering = ['name']
 
     def save(self, *args, **kwargs):
-        # Auto-generate slug from name if not provided
         if not self.slug:
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
@@ -55,7 +54,7 @@ class Product(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['-created_at']  # Newest first
+        ordering = ['-created_at']
         indexes = [
             models.Index(fields=['category', 'is_active']),
             models.Index(fields=['is_featured']),
@@ -76,7 +75,6 @@ class Slide(models.Model):
     link = models.CharField(max_length=200, default="#")
     image = models.ImageField(upload_to='slides/')
     
-    # Display order
     order = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     
@@ -94,18 +92,15 @@ class CompanyInfo(models.Model):
     """
     Store company contact information and settings (Singleton model)
     """
-    # Contact details
     phone = models.CharField(max_length=20)
     email = models.EmailField()
     address = models.TextField()
     
-    # Social media links
     whatsapp_number = models.CharField(max_length=20, help_text="Format: 254700000000")
     instagram_url = models.URLField(blank=True)
     facebook_url = models.URLField(blank=True)
     tiktok_url = models.URLField(blank=True)
     
-    # WhatsApp default message
     whatsapp_default_message = models.CharField(
         max_length=200, 
         default="Hello! I'm interested in your products."
@@ -118,12 +113,10 @@ class CompanyInfo(models.Model):
         verbose_name_plural = "Company Information"
 
     def save(self, *args, **kwargs):
-        # Ensure only one instance exists (Singleton pattern)
         self.pk = 1
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        # Prevent deletion
         pass
 
     @classmethod
@@ -151,3 +144,66 @@ class CompanyLogo(models.Model):
 
     def __str__(self):
         return self.name
+
+
+# ============================================
+# NEW CART MODELS FOR ANONYMOUS USERS
+# ============================================
+
+class Cart(models.Model):
+    """
+    Represents a shopping cart linked to an anonymous session.
+    No user authentication required - identified by session_key only.
+    """
+    session_key = models.CharField(max_length=40, unique=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"Cart (Session: {self.session_key[:8]}...)"
+
+    @property
+    def total_price(self):
+        """Calculate total price of all items in cart"""
+        return sum(item.total_price for item in self.items.all())
+
+    @property
+    def item_count(self):
+        """Calculate total number of items in cart"""
+        return sum(item.quantity for item in self.items.all())
+
+
+class CartItem(models.Model):
+    """
+    Represents a single product in a cart with quantity.
+    Links Cart to Product.
+    """
+    cart = models.ForeignKey(
+        Cart,
+        on_delete=models.CASCADE,
+        related_name='items'
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='cart_items'
+    )
+    quantity = models.PositiveIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        # Ensure each product appears only once per cart
+        unique_together = ['cart', 'product']
+
+    def __str__(self):
+        return f"{self.quantity}x {self.product.name} in cart {self.cart.session_key[:8]}..."
+
+    @property
+    def total_price(self):
+        """Calculate total price for this cart item"""
+        return self.product.price * self.quantity

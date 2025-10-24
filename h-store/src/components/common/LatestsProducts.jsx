@@ -100,13 +100,22 @@ const LatestProducts = () => {
       {!loading && !error && products.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
           {products.map((product) => (
-            <ProductCard
-              key={product.id}
-              image={product.thumbnail || "https://via.placeholder.com/300x400"}
-              company={product.company}
-              name={product.name}
-              price={product.price}
-            />
+            // Inside the .map in LatestProducts.jsx
+<ProductCard
+  key={product.id}
+  id={product.id} // Ensure 'id' is passed here
+  // ... other props like name, price, thumbnail, etc.
+  image={product.thumbnail || "https://via.placeholder.com/300x400"} // Pass thumbnail as image prop too if needed
+  company={product.company}
+  name={product.name}
+  price={product.price}
+  // Pass all necessary props for ProductModal as well
+  thumbnail={product.thumbnail} 
+  image_1={product.image_1}
+  image_2={product.image_2}
+  category_name={product.category_name}
+  description={product.description}
+/>
           ))}
         </div>
       )}
