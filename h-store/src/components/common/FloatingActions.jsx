@@ -2,9 +2,11 @@ import React, { useEffect, useState } from "react";
 
 import { ArrowUpCircle } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
+import { useCart } from "../cart/CartContext"; // 1. Import useCart
 
 const FloatingActions = ({ phoneNumber = "254700000000", message = "Hello!" }) => {
   const [showTop, setShowTop] = useState(false);
+  const { isCartOpen } = useCart(); // 2. Get isCartOpen state from context
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,32 +21,47 @@ const FloatingActions = ({ phoneNumber = "254700000000", message = "Hello!" }) =
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const whatsappLink = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+  const whatsappLink = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
+    message
+  )}`;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col space-y-3 items-end">
+    // 3. Conditionally apply hiding classes based on isCartOpen
+    <div
+      className={`fixed bottom-6 right-6 z-40 flex flex-col space-y-3 items-end transition-all duration-300 ease-in-out ${
+        isCartOpen
+          ? "opacity-0 translate-x-16 pointer-events-none" // Hide and move off-screen when cart is open
+          : "opacity-100 translate-x-0 pointer-events-auto" // Show when cart is closed
+      }`}
+    >
       {/* WhatsApp Button */}
       <a
         href={whatsappLink}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center border border-gray-300 rounded-full shadow-lg px-3 py-2 text-white bg-[#25D366] hover:bg-[#25D366] hover:text-black transition-colors duration-300"
+        className="flex items-center border border-gray-300 rounded-full shadow-lg px-3 py-2 text-white bg-[#25D366] hover:bg-[#128C7E] transition-colors duration-300" // Adjusted hover color
         title="Chat with us on WhatsApp"
+        // Prevent clicking when hidden
+        style={{ pointerEvents: isCartOpen ? 'none' : 'auto' }}
       >
-        <FaWhatsapp className="w-6 h-6 mr-2 transition-colors duration-300" />
+        <FaWhatsapp className="w-6 h-6 mr-2" /> {/* Removed transition */}
         <span className="font-semibold text-sm">Chat Us on WhatsApp</span>
       </a>
 
       {/* Back to Top Button */}
       <div
         className={`transform transition-all duration-500 ${
-          showTop ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6 pointer-events-none"
+          showTop
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 translate-y-6 pointer-events-none"
         }`}
       >
         <button
           onClick={scrollToTop}
           className="flex items-center justify-center w-12 h-12 bg-[#1228e1] text-white rounded-full shadow-lg hover:bg-blue-700 transition"
           title="Back to top"
+          // Prevent clicking when hidden
+          style={{ pointerEvents: isCartOpen || !showTop ? 'none' : 'auto' }}
         >
           <ArrowUpCircle className="w-6 h-6" />
         </button>
