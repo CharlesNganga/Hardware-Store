@@ -42,7 +42,7 @@ def remove_superuser(apps, schema_editor):
         print(f"\nSuperuser {DJANGO_SUPERUSER_USERNAME} not found. Skipping deletion.")
 
 # --- Migration Class ---
-class Migration(migrations.Migration):
+class Migration(settings.Migration):
 
     dependencies = [
         # Make this depend on the previous migration in the *same app*
