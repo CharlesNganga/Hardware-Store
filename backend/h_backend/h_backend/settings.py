@@ -217,6 +217,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://hardware-store-ilq1.onrender.com",
+    "https://hardware-store-phi.vercel.app",
 ]
 CORS_ALLOW_CREDENTIALS = True # CRITICAL for sessions/cookies
 CORS_ALLOW_HEADERS = [
@@ -236,6 +237,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'https://hardware-store-ilq1.onrender.com',
+    "https://hardware-store-phi.vercel.app",
 ]
 CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read CSRF token
 CSRF_COOKIE_SAMESITE = 'Lax'
