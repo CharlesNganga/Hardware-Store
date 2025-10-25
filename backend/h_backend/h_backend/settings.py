@@ -43,6 +43,10 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_filters',
 
+    # Cloudinary (must come before 'api')
+    'cloudinary_storage',
+    'cloudinary',
+
     # Local Apps
     'api',
 ]
@@ -119,6 +123,41 @@ MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ============================================
+# Cloudinary Configuration
+# ============================================
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
+# Read Cloudinary credentials from environment variable
+CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL')
+
+if CLOUDINARY_URL:
+    # Parse the CLOUDINARY_URL automatically
+    cloudinary.config(
+        cloudinary_url=CLOUDINARY_URL
+    )
+    
+    # Set Cloudinary as the default storage for media files
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    
+    # Optional: Configure upload settings
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': cloudinary.config().cloud_name,
+        'API_KEY': cloudinary.config().api_key,
+        'API_SECRET': cloudinary.config().api_secret,
+        'SECURE': True,  # Use HTTPS URLs
+        'MEDIA_TAG': 'media',  # Optional: tag for organizing uploads
+        'INVALID_VIDEO_ERROR_MESSAGE': 'Please upload a valid video file.',
+        'EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS': (),
+        'STATIC_TAG': 'static',
+    }
+else:
+    # Fallback to local storage if CLOUDINARY_URL is not set
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+    print("WARNING: CLOUDINARY_URL not set. Using local file storage.")
 
 
 # ============================================
