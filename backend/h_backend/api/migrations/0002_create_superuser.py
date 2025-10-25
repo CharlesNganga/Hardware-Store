@@ -2,6 +2,8 @@
 import os # Import os
 from django.db import migrations
 from django.contrib.auth import get_user_model # Import user model helper
+from django.conf import settings  # <-- 1. ADD THIS
+from django.db import migrations # <-- 2. ADD THIS
 
 # --- Function to create the superuser ---
 def create_superuser(apps, schema_editor):
@@ -42,14 +44,14 @@ def remove_superuser(apps, schema_editor):
         print(f"\nSuperuser {DJANGO_SUPERUSER_USERNAME} not found. Skipping deletion.")
 
 # --- Migration Class ---
-class Migration(settings.Migration):
+class Migration(migrations.Migration):
 
     dependencies = [
         # Make this depend on the previous migration in the *same app*
         ('api', '0001_initial'),
         # Important: Also depend on the *last* migration of Django's 'auth' app
         # Check your venv's django/contrib/auth/migrations for the latest number
-        migrations.swappable_dependency(migrations.AUTH_USER_MODEL), # Add this if using custom user model
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL), # Add this if using custom user model
         ('auth', '0012_alter_user_first_name_max_length'), # Or the latest auth migration number
     ]
 
