@@ -7,7 +7,7 @@ axios.defaults.withCredentials = true;
 
 // 1. Keep this export from your previous version.
 // You NEED this for image paths.
-export const backendUrl = "http://localhost:8000";
+export const backendUrl = "https://hardware-store-ilq1.onrender.com";
 
 // 2. Define the API base URL
 const BASE_URL = `${backendUrl}/api/`;
